@@ -70,6 +70,7 @@ int main(void)
 
     quick_sort(in, i);
 
+    printf("\n");
     for ( j = 0; j < i; j++ )
     {
         outputPet( &in[j] );
@@ -121,7 +122,7 @@ void outputPet ( const struct pet* in )
     }
     printf("Nickname: %s\n", in->nickname);
     printf("Type: %s\n", in->type);
-    printf("Color: %s\n", in->color);
+    printf("Color: %s\n\n", in->color);
 }
 
 char* getLine( char* in )
