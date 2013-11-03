@@ -19,15 +19,17 @@
  * видам (кошки, собаки, прочие).
  */
 
-#define NICKNAME_BY_DEFAULT "nickname"    // Кличка питомца по-умолчанию
-#define TYPE_BY_DEFAULT     "type"        // Тип питомца по-умолчанию
-#define COLOR_BY_DEFAULT    "color"       // Цвет питомца по-умолчанию
-#define BUF_SIZE            10            // Размер буффера
-#define EXIT_ERROR          -1            // Код ошибки
+#define _GNU_SOURCE            // Макрос, чтобы не ругался -std=c99 на strdup
+#define NICKNAME_BY_DEFAULT    "nickname"       // Кличка питомца по-умолчанию
+#define TYPE_BY_DEFAULT        "type"           // Тип питомца по-умолчанию
+#define COLOR_BY_DEFAULT       "color"          // Цвет питомца по-умолчанию
+#define BUF_SIZE               10               // Размер буффера
+#define EXIT_ERROR             -1               // Код ошибки
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 struct pet
 {
@@ -36,90 +38,90 @@ struct pet
     char* color;
 };
 
-void inputByDefault (struct pet* );           // Ввод значений по-умолчанию
-void outputPet ( const struct pet* );         // Вывод всех "питомцев"
-char* getLine( char* );                       // Правильный динам. ввод строки
-void inputPet(struct pet*, const size_t );    // Ввод параметров питомца
-void swap (struct pet* , struct pet* );       // Swap
-void quick_sort ( struct pet* , size_t );     // Быстрая Сортировка
-void clearPet (struct pet* , size_t );        // Очистка памяти
+void inputByDefault (struct pet* );            // Ввод значений по-умолчанию
+void outputPet ( const struct pet* );          // Вывод всех "питомцев"
+char* getLine( char* );                        // Правильный динам. ввод строки
+void inputPet(struct pet*, const size_t );     // Ввод параметров питомца
+int compareType ( const void*, const void* );  // Функция сравнения для qsort
+void clearPet (struct pet* , const size_t );   // Очистка памяти
 
 int main(void)
 {
-    size_t i = 0;
+    size_t num;
 
-    if (scanf("%zd\n", &i) != 1 )
-    {
+    printf ("Введите количество питомцев : ");
+
+    if ( scanf("%zu%*c", &num) != 1 )   // %*c, а не fflush(stdin) не помогает (
+    {                                   // проблеммы из-за '\n' ...
         printf("Ошибка ввода!\n");
-        exit (EXIT_ERROR);
+        return (EXIT_ERROR);
     }
 
-    struct pet* in = (struct pet* ) malloc( i * sizeof( struct pet ) );
+    printf ("Введите имя, вид и цвет питомца.\n");
+    printf ("Если хотите оставить значение по умолчанию - нажмите enter! \n");
+
+    struct pet* in = (struct pet* ) malloc( num * sizeof( struct pet ) );
     if ( !in )
     {
         printf("Ошибка выделения памяти! \n");
-        exit (EXIT_ERROR);
+        return (EXIT_ERROR);
     }
 
     size_t j;
-    for ( j = 0; j < i; j++ )
+    for ( j = 0; j < num; j++ )
     {
         inputByDefault( &in[j] );
         inputPet( in, j );
     }
 
-    quick_sort(in, i);
+    qsort(in, num, sizeof(struct pet), compareType);
 
     printf("\n");
-    for ( j = 0; j < i; j++ )
+
+    for ( j = 0; j < num; j++ )
     {
         outputPet( &in[j] );
     }
 
-    clearPet( in, i );
+    clearPet( in, num );
     free( in );
+
     return 0;
 }
 
 void inputByDefault ( struct pet* in )
 {
-    if ( in == NULL )
-    {
-        printf("Ошибка! \n");
-        exit (EXIT_ERROR);
-    }
-    in->nickname = (char *) malloc (strlen(NICKNAME_BY_DEFAULT)+1);
+    assert ( in != NULL );
+
+    in->nickname = strdup( NICKNAME_BY_DEFAULT );
     if ( !in->nickname )
     {
         printf("Ошибка выделения памяти! \n");
         exit (EXIT_ERROR);
     }
-    strcpy(in->nickname, NICKNAME_BY_DEFAULT );
 
-    in->type = (char *) malloc (strlen(TYPE_BY_DEFAULT)+1);
+    in->type = strdup( TYPE_BY_DEFAULT );
     if ( !in->type )
     {
         printf("Ошибка выделения памяти! \n");
         exit (EXIT_ERROR);
     }
-    strcpy(in->type, TYPE_BY_DEFAULT);
 
-    in->color = (char *) malloc (strlen(COLOR_BY_DEFAULT)+1);
+    in->color = strdup( COLOR_BY_DEFAULT );
     if ( !in->color )
     {
         printf("Ошибка выделения памяти! \n");
         exit (EXIT_ERROR);
     }
-    strcpy(in->color, COLOR_BY_DEFAULT);
 }
 
 void outputPet ( const struct pet* in )
 {
-    if ( in == NULL )
-    {
-        printf("Ошибка! \n");
-        exit (EXIT_ERROR);
-    }
+    assert ( in != NULL );
+    assert ( in->nickname != NULL );
+    assert ( in->type != NULL );
+    assert ( in->color != NULL );
+
     printf("Nickname: %s\n", in->nickname);
     printf("Type: %s\n", in->type);
     printf("Color: %s\n\n", in->color);
@@ -127,11 +129,8 @@ void outputPet ( const struct pet* in )
 
 char* getLine( char* in )
 {
-    if ( in == NULL )
-    {
-        printf("Ошибка! \n");
-        exit (EXIT_ERROR);
-    }
+    assert ( in != NULL );
+
     char buf ;
     if ( ( buf = getchar() ) == '\n' )
     {
@@ -149,11 +148,11 @@ char* getLine( char* in )
     }
 
     size_t i = 0;
-    in[i] = buf;
-    ++i;
-
-    while ( ( buf = getchar() ) != '\n' )
+    do
     {
+        in[i] = buf;
+        ++i;
+
         if ( i > newBufSize - 1 )
         {
             newBufSize *= 2;
@@ -164,10 +163,8 @@ char* getLine( char* in )
                 exit (EXIT_ERROR);
             }
         }
-
-        in[i] = buf;
-        ++i;
     }
+    while ( ( buf = getchar() ) != '\n' );
 
     in[i]='\0';
 
@@ -176,84 +173,31 @@ char* getLine( char* in )
 
 void inputPet( struct pet* in, const size_t num )
 {
-    if ( in == NULL )
-    {
-        printf("Ошибка! \n");
-        exit (EXIT_ERROR);
-    }
+    assert ( in != NULL );
+
     in[num].nickname = getLine(in[num].nickname);
     in[num].type = getLine(in[num].type);
     in[num].color = getLine(in[num].color);
 }
 
-void swap (struct pet* one, struct pet* two )
+int compareType ( const void* one, const void* two)
 {
-    if ( one == NULL || two == NULL )
-    {
-        printf("Ошибка! \n");
-        exit (EXIT_ERROR);
-    }
+    const struct pet* p_one = (const struct pet*)one;
+    const struct pet* p_two = (const struct pet*)two;
 
-    char* buf = ( char* ) malloc ( 100 * sizeof(char) );
-    if ( !buf )
-    {
-        printf("Ошибка выделения памяти! \n");
-        exit (EXIT_ERROR);
-    }
-
-    strcpy(buf,one->nickname);
-    strcpy(one->nickname,two->nickname);
-    strcpy(two->nickname,buf);
-
-    strcpy(buf,one->color);
-    strcpy(one->color,two->color);
-    strcpy(two->color,buf);
-
-    strcpy(buf,one->type);
-    strcpy(one->type,two->type);
-    strcpy(two->type,buf);
+    return strcmp(p_one->type, p_two->type);
 }
 
-void quick_sort ( struct pet* a, size_t n )
+void clearPet (struct pet* in, const size_t num)
 {
-    if ( a == NULL )
+    assert ( in != NULL );
+
+    if ( num == 0 )
     {
-        printf("Ошибка! \n");
-        exit (EXIT_ERROR);
+        printf ( "Не правильное количество элементов для удаления!\n" );
+        return;
     }
 
-    size_t i = 0;
-    size_t j = n - 1;
-    size_t side = 0;
-    while ( i != j )
-    {
-        if ( strcmp( a[i].type , a[j].type) > 0 )
-        {
-            swap ( &a[i], &a[j] );
-            side = !side;
-        }
-        if ( side )
-        {
-            ++i;
-        }
-        else
-        {
-            --j;
-        }
-    }
-    if ( i > 1 )
-        quick_sort ( a, i );
-    if ( n > i + 1 )
-        quick_sort ( a + (i + 1), n - (i + 1) );
-}
-
-void clearPet (struct pet* in, size_t num)
-{
-    if ( in == NULL )
-    {
-        printf("Ошибка! \n");
-        exit (EXIT_ERROR);
-    }
     size_t i;
     for ( i = 0; i < num; i++ )
     {
