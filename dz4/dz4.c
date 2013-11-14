@@ -24,12 +24,10 @@
 #define TYPE_BY_DEFAULT        "type"           // Тип питомца по-умолчанию
 #define COLOR_BY_DEFAULT       "color"          // Цвет питомца по-умолчанию
 #define BUF_SIZE               10               // Размер буффера
-#define EXIT_ERROR             -1               // Код ошибки
 
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
 
 struct pet
 {
@@ -38,171 +36,268 @@ struct pet
     char* color;
 };
 
-void inputByDefault (struct pet* );            // Ввод значений по-умолчанию
-void outputPet ( const struct pet* );          // Вывод всех "питомцев"
-char* getLine( char* );                        // Правильный динам. ввод строки
-void inputPet(struct pet*, const size_t );     // Ввод параметров питомца
+int inputByDefault (struct pet* );             // Ввод значений по-умолчанию
+int outputPet( const struct pet* );            // Вывод всех "питомцев"
+int getLine(char** );                          // Динамический ввод строки
+int inputPet(struct pet*, const size_t );      // Ввод параметров питомца
 int compareType ( const void*, const void* );  // Функция сравнения для qsort
-void clearPet (struct pet* , const size_t );   // Очистка памяти
+int clearPet (struct pet* , const size_t );    // Очистка памяти
 
 int main(void)
 {
     size_t num;
 
-    printf ("Введите количество питомцев : ");
+    printf ( "Введите количество питомцев : " );
 
-    if ( scanf("%zu%*c", &num) != 1 )   // %*c, а не fflush(stdin) не помогает (
+    if ( scanf("%zu%*c", &num) != 1 )   // %*c, fflush(stdin) не помогает (
     {                                   // проблеммы из-за '\n' ...
-        printf("Ошибка ввода!\n");
-        return (EXIT_ERROR);
+        printf( "Ошибка ввода!\n" );
+        return EXIT_FAILURE;
     }
 
     printf ("Введите имя, вид и цвет питомца.\n");
     printf ("Если хотите оставить значение по умолчанию - нажмите enter! \n");
 
+    // Выделяем память под массив структур
     struct pet* in = (struct pet* ) malloc( num * sizeof( struct pet ) );
     if ( !in )
     {
         printf("Ошибка выделения памяти! \n");
-        return (EXIT_ERROR);
+        return EXIT_FAILURE;
     }
 
+    // Заполняем структуру значениями. Сначала умолчательными, если будут
+    // введены, то заменяеи их введёнными.
     size_t j;
     for ( j = 0; j < num; j++ )
     {
-        inputByDefault( &in[j] );
-        inputPet( in, j );
+        if ( inputByDefault( &in[j] ) == EXIT_FAILURE )
+        {
+            printf("Ошибка выделения памяти! \n");
+            // Все структуры до j чистятся
+            clearPet( in, j );
+            free ( in );
+            return EXIT_FAILURE;
+        }
+        if ( inputPet( in, j ) == EXIT_FAILURE)
+        {
+            printf("Ошибка выделения памяти! \n");
+            // Все структуры до j чистятся
+            clearPet( in, j );
+            free ( in );
+            return EXIT_FAILURE;
+        }
     }
 
+    // Сорируем по типу питомца
     qsort(in, num, sizeof(struct pet), compareType);
 
     printf("\n");
 
+    // Вывод значений полей структуры
     for ( j = 0; j < num; j++ )
     {
-        outputPet( &in[j] );
+        if ( outputPet( &in[j] ) == EXIT_FAILURE )
+        {
+            clearPet( in, j );
+            free ( in );
+            return EXIT_FAILURE;
+        }
     }
 
+    // Очистка полей структуры
     clearPet( in, num );
+    // Очистка массива структур
     free( in );
 
-    return 0;
+    return EXIT_SUCCESS;
 }
 
-void inputByDefault ( struct pet* in )
+int inputByDefault ( struct pet* in )
 {
-    assert ( in != NULL );
+    // Функция заполняет поля структуры умолчательными значениями заданными
+    // в константах NICKNAME_BY_DEFAULT, TYPE_BY_DEFAULT, COLOR_BY_DEFAULT
+    // Если на каком-то этапе заполнения ошибка, все значения == NULL.
+
+    if ( in == NULL )
+        return EXIT_FAILURE;
+
 
     in->nickname = strdup( NICKNAME_BY_DEFAULT );
-    if ( !in->nickname )
+    if ( in->nickname == NULL )
     {
-        printf("Ошибка выделения памяти! \n");
-        exit (EXIT_ERROR);
+        in->color = NULL;
+        in->type = NULL;
+        return EXIT_FAILURE;
     }
 
     in->type = strdup( TYPE_BY_DEFAULT );
-    if ( !in->type )
+    if ( in->type == NULL )
     {
-        printf("Ошибка выделения памяти! \n");
-        exit (EXIT_ERROR);
+        free ( in->nickname );
+        in->nickname = NULL;
+        in->color = NULL;
+        return EXIT_FAILURE;
     }
 
     in->color = strdup( COLOR_BY_DEFAULT );
-    if ( !in->color )
+    if ( in->color == NULL )
     {
-        printf("Ошибка выделения памяти! \n");
-        exit (EXIT_ERROR);
+        free( in->nickname );
+        free( in->type );
+        in->nickname = NULL;
+        in->type = NULL;
+        return EXIT_FAILURE;
     }
+
+    return EXIT_SUCCESS;
 }
 
-void outputPet ( const struct pet* in )
+int outputPet ( const struct pet* in )
 {
-    assert ( in != NULL );
-    assert ( in->nickname != NULL );
-    assert ( in->type != NULL );
-    assert ( in->color != NULL );
+    // Вывод полей структуры pet
+
+    if ( in == NULL )
+        return EXIT_FAILURE;
+
+    if ( in->nickname == NULL )
+        return EXIT_FAILURE;
+    if ( in->type == NULL )
+        return EXIT_FAILURE;
+    if ( in->color == NULL )
+        return EXIT_FAILURE;
 
     printf("Nickname: %s\n", in->nickname);
     printf("Type: %s\n", in->type);
     printf("Color: %s\n\n", in->color);
+
+    return EXIT_SUCCESS;
 }
 
-char* getLine( char* in )
+int getLine( char** in )
 {
-    assert ( in != NULL );
+    // Функция заполняет поля значениями вводимыми с клавиатуры,
+    // если не вводилось ничего, то ничего не дела.
+    // При ошибке возвращает EXIT_FAILURE и присваевает in = NULL
 
-    char buf ;
+    if ( *in == NULL )
+        return EXIT_FAILURE;
+
+    // Если ничего не введено.
+    char buf;
     if ( ( buf = getchar() ) == '\n' )
     {
-        return in;
+        return EXIT_SUCCESS;
     }
-    free (in);
+
+    // Чистим умолчательное значение и присваиваем NULL,
+    // на случай, если будут проблемы выделения памяти.
+    free ( *in );
+    *in = NULL;
 
     size_t newBufSize = BUF_SIZE;
 
-    in = ( char* ) malloc ( newBufSize * sizeof(char) );
-    if ( !in )
+    char* out;
+    out = ( char* ) malloc ( newBufSize * sizeof(char) );
+    if ( !out )
     {
         printf("Ошибка выделения памяти! \n");
-        exit (EXIT_ERROR);
+        return EXIT_FAILURE;
     }
 
+    // Выделяем кусок памяти, вводим значения с экрана, если буффер заполнен
+    // увеличиваем его на BUFFER_SIZE;
     size_t i = 0;
     do
     {
-        in[i] = buf;
+        out[i] = buf;
         ++i;
 
+        // Если буффер закончился
         if ( i > newBufSize - 1 )
         {
             newBufSize *= 2;
-            in = ( char* ) realloc ( in, newBufSize * sizeof(char) );
-            if ( !in )
+            out = ( char* ) realloc ( out, newBufSize * sizeof(char) );
+            if ( !out )
             {
                 printf("Ошибка выделения памяти! \n");
-                exit (EXIT_ERROR);
+                free (out);
+                return EXIT_FAILURE;
             }
         }
     }
     while ( ( buf = getchar() ) != '\n' );
 
-    in[i]='\0';
+    out[i]='\0';
+    *in = out;
 
-    return in;
+    return EXIT_SUCCESS;
 }
 
-void inputPet( struct pet* in, const size_t num )
+int inputPet( struct pet* in, const size_t num )
 {
-    assert ( in != NULL );
+    // Ввод пользователем полей структуры, проинициализированных уже
+    // по-умолчанию.
+    // Если какая-либо ошибка заполнения - все поля = NULL
 
-    in[num].nickname = getLine(in[num].nickname);
-    in[num].type = getLine(in[num].type);
-    in[num].color = getLine(in[num].color);
+    if ( in == NULL )
+        return EXIT_FAILURE;
+
+    if ( getLine( &in[num].nickname ) == EXIT_FAILURE)
+    {
+        free(in[num].color);
+        free(in[num].type);
+        in[num].color = NULL;
+        in[num].type = NULL;
+        return EXIT_FAILURE;
+    }
+    if ( getLine( &in[num].type ) == EXIT_FAILURE )
+    {
+        free(in[num].color);
+        free(in[num].nickname);
+        in[num].color = NULL;
+        in[num].nickname = NULL;
+        return EXIT_FAILURE;
+    }
+    if ( getLine( &in[num].color ) == EXIT_FAILURE )
+    {
+        free(in[num].nickname);
+        free(in[num].type);
+        in[num].nickname = NULL;
+        in[num].type = NULL;
+        return EXIT_FAILURE;
+    }
+
+    return EXIT_SUCCESS;
 }
 
 int compareType ( const void* one, const void* two)
 {
-    const struct pet* p_one = (const struct pet*)one;
-    const struct pet* p_two = (const struct pet*)two;
+    // Функция сравнения для поля структуры pet->type
 
-    return strcmp(p_one->type, p_two->type);
+    const struct pet* p_one = ( const struct pet* )one;
+    const struct pet* p_two = ( const struct pet* )two;
+
+    return strcmp( p_one->type, p_two->type );
 }
 
-void clearPet (struct pet* in, const size_t num)
+int clearPet ( struct pet* in, const size_t num )
 {
-    assert ( in != NULL );
+    // Очистка памяти от строк структуры
+
+    if ( in == NULL )
+        return EXIT_FAILURE;
 
     if ( num == 0 )
-    {
-        printf ( "Не правильное количество элементов для удаления!\n" );
-        return;
-    }
+        return EXIT_FAILURE;
 
     size_t i;
-    for ( i = 0; i < num; i++ )
+    for ( i = 0; i < num ; i++ )
     {
         free ( in[i].nickname );
         free ( in[i].type );
         free ( in[i].color );
     }
+
+    return EXIT_SUCCESS;
 }
