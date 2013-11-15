@@ -78,7 +78,6 @@ int main(void)
             printf("Ошибка выделения памяти! \n");
             // Все структуры до j чистятся
             clearPetsUntilNum( in, j );
-            free ( in );
             return EXIT_FAILURE;
         }
         if ( inputPet( in, j ) == EXIT_FAILURE)
@@ -86,7 +85,6 @@ int main(void)
             printf("Ошибка выделения памяти! \n");
             // Все структуры до j чистятся
             clearPetsUntilNum( in, j );
-            free ( in );
             return EXIT_FAILURE;
         }
     }
@@ -102,15 +100,12 @@ int main(void)
         if ( outputPet( &in[j] ) == EXIT_FAILURE )
         {
             clearPetsUntilNum( in, j );
-            free ( in );
             return EXIT_FAILURE;
         }
     }
 
-    // Очистка полей структуры
+    // Очистка всей структуры
     clearPetsUntilNum( in, num );
-    // Очистка массива структур
-    free( in );
 
     return EXIT_SUCCESS;
 }
@@ -163,8 +158,6 @@ int outputPet ( const struct pet* in )
         return EXIT_FAILURE;
 
     if ( in->nickname == NULL )
-    if ( in->nickname == NULL )
-    if ( in->nickname == NULL )
         return EXIT_FAILURE;
     if ( in->type == NULL )
         return EXIT_FAILURE;
@@ -185,6 +178,9 @@ int getLine( char** in )
     // При ошибке возвращает EXIT_FAILURE и присваевает in = NULL
 
     if ( *in == NULL )
+        return EXIT_FAILURE;
+
+    if ( in == NULL )
         return EXIT_FAILURE;
 
     // Если ничего не введено.
@@ -247,6 +243,13 @@ int inputPet( struct pet* in, const size_t num )
     if ( in == NULL )
         return EXIT_FAILURE;
 
+    if ( in[num].nickname == NULL )
+        return EXIT_FAILURE;
+    if ( in[num].color == NULL )
+        return EXIT_FAILURE;
+    if ( in[num].type == NULL )
+        return EXIT_FAILURE;
+
     if ( getLine( &in[num].nickname ) == EXIT_FAILURE)
     {
         free(in[num].color);
@@ -301,6 +304,8 @@ int clearPetsUntilNum ( struct pet* in, const size_t num )
         clearPet( in, i );
     }
 
+    free( in );
+
     return EXIT_SUCCESS;
 }
 
@@ -309,6 +314,13 @@ int clearPet ( struct pet* in, const size_t num )
     // Очистка полей конкретной структуры
 
     if ( in == NULL )
+        return EXIT_FAILURE;
+
+    if ( in[num].nickname == NULL )
+        return EXIT_FAILURE;
+    if ( in[num].type == NULL )
+        return EXIT_FAILURE;
+    if ( in[num].color == NULL )
         return EXIT_FAILURE;
 
     free ( in[num].nickname );
