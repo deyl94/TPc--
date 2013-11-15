@@ -119,6 +119,12 @@ int inputByDefault ( struct pet* in )
     if ( in == NULL )
         return EXIT_FAILURE;
 
+    if ( in[num].nickname == NULL )
+        return EXIT_FAILURE;
+    if ( in[num].color == NULL )
+        return EXIT_FAILURE;
+    if ( in[num].type == NULL )
+        return EXIT_FAILURE;
 
     in->nickname = strdup( NICKNAME_BY_DEFAULT );
     if ( in->nickname == NULL )
