@@ -42,6 +42,8 @@ int getLine(char** );                          // Динамический вв�
 int inputPet(struct pet*, const size_t );      // Ввод параметров питомца
 int compareType ( const void*, const void* );  // Функция сравнения для qsort
 int clearPet (struct pet* , const size_t );    // Очистка памяти
+int clearPetsUntilNum ( struct pet*, const size_t ); // Удаление нескольких структур
+
 
 int main(void)
 {
@@ -75,7 +77,7 @@ int main(void)
         {
             printf("Ошибка выделения памяти! \n");
             // Все структуры до j чистятся
-            clearPet( in, j );
+            clearPetsUntilNum( in, j );
             free ( in );
             return EXIT_FAILURE;
         }
@@ -83,7 +85,7 @@ int main(void)
         {
             printf("Ошибка выделения памяти! \n");
             // Все структуры до j чистятся
-            clearPet( in, j );
+            clearPetsUntilNum( in, j );
             free ( in );
             return EXIT_FAILURE;
         }
@@ -99,14 +101,14 @@ int main(void)
     {
         if ( outputPet( &in[j] ) == EXIT_FAILURE )
         {
-            clearPet( in, j );
+            clearPetsUntilNum( in, j );
             free ( in );
             return EXIT_FAILURE;
         }
     }
 
     // Очистка полей структуры
-    clearPet( in, num );
+    clearPetsUntilNum( in, num );
     // Очистка массива структур
     free( in );
 
@@ -281,9 +283,9 @@ int compareType ( const void* one, const void* two)
     return strcmp( p_one->type, p_two->type );
 }
 
-int clearPet ( struct pet* in, const size_t num )
+int clearPetsUntilNum ( struct pet* in, const size_t num )
 {
-    // Очистка памяти от строк структуры
+    // Очистка памяти от num структур
 
     if ( in == NULL )
         return EXIT_FAILURE;
@@ -294,10 +296,22 @@ int clearPet ( struct pet* in, const size_t num )
     size_t i;
     for ( i = 0; i < num ; i++ )
     {
-        free ( in[i].nickname );
-        free ( in[i].type );
-        free ( in[i].color );
+        clearPet( in, i );
     }
+
+    return EXIT_SUCCESS;
+}
+
+int clearPet ( struct pet* in, const size_t num )
+{
+    // Очистка полей конкретной структуры
+
+    if ( in == NULL )
+        return EXIT_FAILURE;
+
+    free ( in[num].nickname );
+    free ( in[num].type );
+    free ( in[num].color );
 
     return EXIT_SUCCESS;
 }
