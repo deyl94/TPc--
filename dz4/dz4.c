@@ -163,6 +163,8 @@ int outputPet ( const struct pet* in )
         return EXIT_FAILURE;
 
     if ( in->nickname == NULL )
+    if ( in->nickname == NULL )
+    if ( in->nickname == NULL )
         return EXIT_FAILURE;
     if ( in->type == NULL )
         return EXIT_FAILURE;
